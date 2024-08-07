@@ -5,9 +5,9 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"path"
 	"time"
@@ -18,6 +18,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
 )
+
+//go:embed web
+var webFS embed.FS
 
 const version = "v0.0.0"
 
@@ -108,7 +111,7 @@ func main() {
 	r.POST("/deleteBucket", boltbrowserweb.DeleteBucket)
 	r.POST("/prefixScan", boltbrowserweb.PrefixScan)
 
-	r.StaticFS("/web", http.Dir("./web"))
+	r.StaticFS("/web", gin.FS(webFS, "web"))
 
 	r.Run(":" + port)
 }
