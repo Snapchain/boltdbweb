@@ -2,17 +2,19 @@ package boltbrowserweb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	bbntypes "github.com/babylonlabs-io/babylon/types"
 	bbnproto "github.com/babylonlabs-io/finality-provider/finality-provider/proto"
-	"github.com/boltdb/bolt"
+	bbnprotoold "github.com/evnix/boltdbweb/altproto"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/bbolt"
 	pm "google.golang.org/protobuf/proto"
 )
 
-var Db *bolt.DB
+var Db *bbolt.DB
 
 func Index(c *gin.Context) {
 
@@ -26,7 +28,7 @@ func CreateBucket(c *gin.Context) {
 		c.String(200, "no bucket name | n")
 	}
 
-	Db.Update(func(tx *bolt.Tx) error {
+	Db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(c.PostForm("bucket")))
 		b = b
 		if err != nil {
@@ -44,7 +46,7 @@ func DeleteBucket(c *gin.Context) {
 		c.String(200, "no bucket name | n")
 	}
 
-	Db.Update(func(tx *bolt.Tx) error {
+	Db.Update(func(tx *bbolt.Tx) error {
 		err := tx.DeleteBucket([]byte(c.PostForm("bucket")))
 
 		if err != nil {
@@ -66,16 +68,20 @@ func DeleteKey(c *gin.Context) {
 		c.String(200, "no bucket name or key | n")
 	}
 
-	Db.Update(func(tx *bolt.Tx) error {
+	Db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(c.PostForm("bucket")))
-		b = b
 		if err != nil {
 
 			c.String(200, "error no such bucket | n")
 			return fmt.Errorf("bucket: %s", err)
 		}
 
-		err = b.Delete([]byte(c.PostForm("key")))
+		key, err := tryParseHex(c.PostForm("key"))
+		if err != nil {
+			key = []byte(c.PostForm("key"))
+		}
+
+		err = b.Delete(key)
 
 		if err != nil {
 
@@ -90,25 +96,77 @@ func DeleteKey(c *gin.Context) {
 
 }
 
+func tryParseHex(s string) ([]byte, error) {
+	return hex.DecodeString(s)
+}
+
 func Put(c *gin.Context) {
 
 	if c.PostForm("bucket") == "" || c.PostForm("key") == "" {
 		c.String(200, "no bucket name or key | n")
 	}
 
-	Db.Update(func(tx *bolt.Tx) error {
+	Db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(c.PostForm("bucket")))
-		b = b
 		if err != nil {
 
 			c.String(200, "error  creating bucket | n")
 			return fmt.Errorf("create bucket: %s", err)
 		}
 
-		err = b.Put([]byte(c.PostForm("key")), []byte(c.PostForm("value")))
+		key, err := tryParseHex(c.PostForm("key"))
+		if err != nil {
+			key = []byte(c.PostForm("key"))
+		}
+
+		value, err := tryParseHex(c.PostForm("value"))
+		if err != nil {
+			value = []byte(c.PostForm("value"))
+		}
+
+		// TODO: this is a hack
+		if c.PostForm("bucket") == "finalityProviders" && c.PostForm("key") == "db_migration" {
+			log.Info("db migration for finalityProviders bucket")
+			if true {
+				c.String(200, "error unmarshalling value | n")
+				return fmt.Errorf("unmarshalling value: %s", err)
+			}
+			// get the value from the db
+			oldValue := b.Get(key)
+
+			// unmarshal the value to a FinalityProvider (old)
+			fpOld := &bbnprotoold.FinalityProvider{}
+			if err := pm.Unmarshal(oldValue, fpOld); err != nil {
+				c.String(200, "error unmarshalling value | n")
+				return fmt.Errorf("unmarshalling value: %s", err)
+			}
+
+			// use the old FinalityProvider to create a new FinalityProvider
+			fpNew := &bbnproto.FinalityProvider{
+				FpAddr:      "bbn1p4eyheg4quhxjrx7r3029hxylugl546zyfs7l9",
+				BtcPk:       fpOld.BtcPk,
+				Description: fpOld.Description,
+				Commission:  fpOld.Commission,
+				Pop: &bbnproto.ProofOfPossession{
+					BtcSig: fpOld.Pop.BtcSig,
+				},
+				KeyName:             fpOld.KeyName,
+				ChainId:             fpOld.ChainId,
+				LastVotedHeight:     fpOld.LastVotedHeight,
+				LastProcessedHeight: fpOld.LastProcessedHeight,
+				Status:              bbnproto.FinalityProviderStatus(fpOld.Status),
+			}
+
+			value, err = pm.Marshal(fpNew)
+			if err != nil {
+				c.String(200, "error marshalling value | n")
+				return fmt.Errorf("marshalling value: %s", err)
+			}
+		}
+
+		err = b.Put(key, value)
 
 		if err != nil {
-
 			c.String(200, "error writing KV | n")
 			return fmt.Errorf("create kv: %s", err)
 		}
@@ -130,7 +188,7 @@ func Get(c *gin.Context) {
 		c.JSON(200, res)
 	}
 
-	Db.View(func(tx *bolt.Tx) error {
+	Db.View(func(tx *bbolt.Tx) error {
 
 		b := tx.Bucket([]byte(c.PostForm("bucket")))
 
@@ -172,10 +230,17 @@ func tryParseBytesArrayKey(v []byte) string {
 }
 
 func tryParseBytesArrayValue(v []byte) string {
-	// try to parse as a Babylon FinalityProvider
-	fp := &bbnproto.FinalityProvider{}
-	if err := pm.Unmarshal(v, fp); err == nil {
-		return fp.String()
+
+	// TODO: some data can be unmarshalled either as new or old proto FinalityProvider
+	// so we need to figure out which one it is
+	fpNew := &bbnproto.FinalityProvider{}
+	if err := pm.Unmarshal(v, fpNew); err == nil {
+		return fpNew.String()
+	}
+
+	fpOld := &bbnprotoold.FinalityProvider{}
+	if err := pm.Unmarshal(v, fpOld); err == nil {
+		return fpOld.String()
 	}
 
 	return string(v)
@@ -197,7 +262,7 @@ func PrefixScan(c *gin.Context) {
 
 	if c.PostForm("key") == "" {
 
-		Db.View(func(tx *bolt.Tx) error {
+		Db.View(func(tx *bbolt.Tx) error {
 			// Assume bucket exists and has keys
 			b := tx.Bucket([]byte(c.PostForm("bucket")))
 
@@ -227,7 +292,7 @@ func PrefixScan(c *gin.Context) {
 
 	} else {
 
-		Db.View(func(tx *bolt.Tx) error {
+		Db.View(func(tx *bbolt.Tx) error {
 			// Assume bucket exists and has keys
 			b := tx.Bucket([]byte(c.PostForm("bucket"))).Cursor()
 
@@ -264,9 +329,9 @@ func Buckets(c *gin.Context) {
 
 	res := []string{}
 
-	Db.View(func(tx *bolt.Tx) error {
+	Db.View(func(tx *bbolt.Tx) error {
 
-		return tx.ForEach(func(name []byte, _ *bolt.Bucket) error {
+		return tx.ForEach(func(name []byte, _ *bbolt.Bucket) error {
 
 			b := []string{string(name)}
 			res = append(res, b...)

@@ -15,15 +15,15 @@ import (
 	boltbrowserweb "github.com/evnix/boltdbweb/web"
 	"github.com/gin-gonic/gin"
 
-	"github.com/boltdb/bolt"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/bbolt"
 )
 
 const version = "v0.0.0"
 
 var (
 	showHelp   bool
-	db         *bolt.DB
+	db         *bbolt.DB
 	dbName     string
 	port       string
 	staticPath string
@@ -82,7 +82,7 @@ func main() {
 	log.Info("starting boltdb-browser..")
 
 	var err error
-	db, err = bolt.Open(dbName, 0600, &bolt.Options{Timeout: 2 * time.Second})
+	db, err = bbolt.Open(dbName, 0600, &bbolt.Options{Timeout: 2 * time.Second})
 	boltbrowserweb.Db = db
 
 	if err != nil {
