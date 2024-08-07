@@ -216,9 +216,6 @@ type Result struct {
 }
 
 func tryParseBytesArrayKey(v []byte) string {
-	// if true {
-	// 	return fmt.Sprintf("%x", v)
-	// }
 	// try to parse as a BIP340 pubkey
 	pb, err := bbntypes.NewBIP340PubKey(v)
 	if err == nil {
@@ -229,10 +226,9 @@ func tryParseBytesArrayKey(v []byte) string {
 }
 
 func tryParseBytesArrayValue(v []byte) string {
-	// if true {
-	// 	return fmt.Sprintf("%x", v)
-	// }
 
+	// TODO: some data can be unmarshalled either as new or old proto FinalityProvider
+	// so we need to figure out which one it is
 	fpNew := &bbnproto.FinalityProvider{}
 	if err := pm.Unmarshal(v, fpNew); err == nil {
 		return fpNew.String()
