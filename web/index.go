@@ -3,8 +3,11 @@ package boltbrowserweb
 import (
 	"bytes"
 	"fmt"
+
+	bbntypes "github.com/babylonlabs-io/babylon/types"
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 var Db *bolt.DB
@@ -131,12 +134,12 @@ func Get(c *gin.Context) {
 
 		if b != nil {
 
-			v := b.Get([]byte(c.PostForm("key")))
+			v := tryParseBytesArrayKey(b.Get([]byte(c.PostForm("key"))))
 
 			res[0] = "ok"
-			res[1] = string(v)
+			res[1] = v
 
-			fmt.Printf("Key: %s\n", v)
+			log.Infof("Key: %s", v)
 
 		} else {
 
@@ -154,6 +157,16 @@ func Get(c *gin.Context) {
 type Result struct {
 	Result string
 	M      map[string]string
+}
+
+func tryParseBytesArrayKey(v []byte) string {
+	// try to parse as a BIP340 pubkey
+	pb, err := bbntypes.NewBIP340PubKey(v)
+	if err == nil {
+		return pb.MarshalHex()
+	}
+
+	return string(v)
 }
 
 func PrefixScan(c *gin.Context) {
@@ -181,7 +194,7 @@ func PrefixScan(c *gin.Context) {
 				c := b.Cursor()
 
 				for k, v := c.First(); k != nil; k, v = c.Next() {
-					res.M[string(k)] = string(v)
+					res.M[tryParseBytesArrayKey(k)] = string(v)
 
 					if count > 2000 {
 						break
