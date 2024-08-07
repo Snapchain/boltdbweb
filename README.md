@@ -1,15 +1,9 @@
 # boltdbweb
 A simple web based boltdb GUI Admin panel.
 
-
-##### Installation
-```
-go get github.com/evnix/boltdbweb
-```
-
 ##### Usage
 ```
-boltdbweb --db-name=<DBfilename>[required] --port=<port>[optional] --static-path=<static-path>[optional]
+go run boltdbweb.go --db-name=<DBfilename>[required] --port=<port>[optional] --static-path=<static-path>[optional]
 ```
 - `--db-name:` The file name of the DB.
     - NOTE: If 'file.db' does not exist. it will be created as a BoltDB file.
@@ -19,7 +13,7 @@ boltdbweb --db-name=<DBfilename>[required] --port=<port>[optional] --static-path
 
 ##### Example
 ```
-boltdbweb --db-name=test.db --port=8089 --static-path=/home/user/github/boltdbweb
+go run boltdbweb.go --db-name=test.db --port=8089 --static-path=/home/user/github/boltdbweb
 ```
 Goto: http://localhost:8089
 
