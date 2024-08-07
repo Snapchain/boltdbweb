@@ -119,18 +119,43 @@ func Put(c *gin.Context) {
 			value = []byte(c.PostForm("value"))
 		}
 
+		// TODO: this is a hack
+		if c.PostForm("key") == "eacf2435ba6c2a29a58aba776e3cccbe7c54def6402518e63e9b3b042dbefcc4" && c.PostForm("value") == "" {
+			log.Info("Modifying key eacf2435ba6c2a29a58aba776e3cccbe7c54def6402518e63e9b3b042dbefcc4. This is a hack")
+			// get the value from the db
+			oldValue := b.Get(key)
+
+			// unmarshal the value to a FinalityProvider (old)
+			fpOld := &bbnprotoold.FinalityProvider{}
+			if err := pm.Unmarshal(oldValue, fpOld); err != nil {
+				c.String(200, "error unmarshalling value | n")
+				return fmt.Errorf("unmarshalling value: %s", err)
+			}
+
+			// use the old FinalityProvider to create a new FinalityProvider
+			fpNew := &bbnproto.FinalityProvider{
+				FpAddr:      "bbn1p4eyheg4quhxjrx7r3029hxylugl546zyfs7l9",
+				BtcPk:       fpOld.BtcPk,
+				Description: fpOld.Description,
+				Commission:  fpOld.Commission,
+				Pop: &bbnproto.ProofOfPossession{
+					BtcSig: fpOld.Pop.BtcSig,
+				},
+				KeyName:             fpOld.KeyName,
+				ChainId:             fpOld.ChainId,
+				LastVotedHeight:     fpOld.LastVotedHeight,
+				LastProcessedHeight: fpOld.LastProcessedHeight,
+				Status:              bbnproto.FinalityProviderStatus(fpOld.Status),
+			}
+
+			value, err = pm.Marshal(fpNew)
+			if err != nil {
+				c.String(200, "error marshalling value | n")
+				return fmt.Errorf("marshalling value: %s", err)
+			}
+		}
+
 		err = b.Put(key, value)
-
-		// TODO:
-		// 1. merge two DB. add the reg-db record to base-db
-		// 2. find that record in base-db
-		// 3. get the value and use the reg-FP-proto-buf to decode it to object A
-		// 4. use obect A to create an object B that uses the base-FP-proto-buf
-		// 5. pm.marshal object B and put it in the base-db
-
-		// Issues:
-		// 1. why cannot open DB. index out of range
-		// 2. why base-db shows chain_pk field in value
 
 		if err != nil {
 			c.String(200, "error writing KV | n")
@@ -202,15 +227,15 @@ func tryParseBytesArrayValue(v []byte) string {
 	// if true {
 	// 	return fmt.Sprintf("%x", v)
 	// }
-	// try to parse as a Babylon FinalityProvider
-	fp := &bbnprotoold.FinalityProvider{}
-	if err := pm.Unmarshal(v, fp); err == nil {
-		return fp.String()
-	}
 
 	fpNew := &bbnproto.FinalityProvider{}
 	if err := pm.Unmarshal(v, fpNew); err == nil {
 		return fpNew.String()
+	}
+
+	fpOld := &bbnprotoold.FinalityProvider{}
+	if err := pm.Unmarshal(v, fpOld); err == nil {
+		return fpOld.String()
 	}
 
 	return string(v)
