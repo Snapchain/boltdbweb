@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	bbnprotoold "github.com/babylonchain/finality-provider/finality-provider/proto"
 	bbntypes "github.com/babylonlabs-io/babylon/types"
-	bbnproto "github.com/babylonlabs-io/finality-provider/finality-provider/proto"
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -173,7 +173,7 @@ func tryParseBytesArrayKey(v []byte) string {
 
 func tryParseBytesArrayValue(v []byte) string {
 	// try to parse as a Babylon FinalityProvider
-	fp := &bbnproto.FinalityProvider{}
+	fp := &bbnprotoold.FinalityProvider{}
 	if err := pm.Unmarshal(v, fp); err == nil {
 		return fp.String()
 	}
