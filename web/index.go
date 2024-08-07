@@ -125,8 +125,12 @@ func Put(c *gin.Context) {
 		}
 
 		// TODO: this is a hack
-		if c.PostForm("key") == "eacf2435ba6c2a29a58aba776e3cccbe7c54def6402518e63e9b3b042dbefcc4" && c.PostForm("value") == "" {
-			log.Info("Modifying key eacf2435ba6c2a29a58aba776e3cccbe7c54def6402518e63e9b3b042dbefcc4. This is a hack")
+		if c.PostForm("bucket") == "finalityProviders" && c.PostForm("key") == "db_migration" {
+			log.Info("db migration for finalityProviders bucket")
+			if true {
+				c.String(200, "error unmarshalling value | n")
+				return fmt.Errorf("unmarshalling value: %s", err)
+			}
 			// get the value from the db
 			oldValue := b.Get(key)
 
