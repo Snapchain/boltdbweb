@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	// bbnprotoold "github.com/babylonchain/finality-provider/finality-provider/proto"
 	bbntypes "github.com/babylonlabs-io/babylon/types"
+	bbnproto "github.com/babylonlabs-io/finality-provider/finality-provider/proto"
+	bbnprotoold "github.com/evnix/boltdbweb/altproto"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"go.etcd.io/bbolt"
+	pm "google.golang.org/protobuf/proto"
 )
 
 var Db *bbolt.DB
@@ -201,15 +203,15 @@ func tryParseBytesArrayValue(v []byte) string {
 	// 	return fmt.Sprintf("%x", v)
 	// }
 	// try to parse as a Babylon FinalityProvider
-	// fp := &bbnprotoold.FinalityProvider{}
-	// if err := pm.Unmarshal(v, fp); err == nil {
-	// 	return fp.String()
-	// }
+	fp := &bbnprotoold.FinalityProvider{}
+	if err := pm.Unmarshal(v, fp); err == nil {
+		return fp.String()
+	}
 
-	// fpNew := &bbnproto.FinalityProvider{}
-	// if err := pm.Unmarshal(v, fpNew); err == nil {
-	// 	return fpNew.String()
-	// }
+	fpNew := &bbnproto.FinalityProvider{}
+	if err := pm.Unmarshal(v, fpNew); err == nil {
+		return fpNew.String()
+	}
 
 	return string(v)
 }
