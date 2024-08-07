@@ -5,9 +5,11 @@ import (
 	"fmt"
 
 	bbntypes "github.com/babylonlabs-io/babylon/types"
+	bbnproto "github.com/babylonlabs-io/finality-provider/finality-provider/proto"
 	"github.com/boltdb/bolt"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	pm "google.golang.org/protobuf/proto"
 )
 
 var Db *bolt.DB
@@ -169,6 +171,16 @@ func tryParseBytesArrayKey(v []byte) string {
 	return string(v)
 }
 
+func tryParseBytesArrayValue(v []byte) string {
+	// try to parse as a Babylon FinalityProvider
+	fp := &bbnproto.FinalityProvider{}
+	if err := pm.Unmarshal(v, fp); err == nil {
+		return fp.String()
+	}
+
+	return string(v)
+}
+
 func PrefixScan(c *gin.Context) {
 
 	res := Result{Result: "nok"}
@@ -194,7 +206,7 @@ func PrefixScan(c *gin.Context) {
 				c := b.Cursor()
 
 				for k, v := c.First(); k != nil; k, v = c.Next() {
-					res.M[tryParseBytesArrayKey(k)] = string(v)
+					res.M[tryParseBytesArrayKey(k)] = tryParseBytesArrayValue(v)
 
 					if count > 2000 {
 						break
@@ -224,7 +236,7 @@ func PrefixScan(c *gin.Context) {
 				prefix := []byte(c.PostForm("key"))
 
 				for k, v := b.Seek(prefix); bytes.HasPrefix(k, prefix); k, v = b.Next() {
-					res.M[string(k)] = string(v)
+					res.M[tryParseBytesArrayKey(k)] = tryParseBytesArrayValue(v)
 					if count > 2000 {
 						break
 					}
