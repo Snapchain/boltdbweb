@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"fmt"
 
-	bbnprotoold "github.com/babylonchain/finality-provider/finality-provider/proto"
+	// bbnprotoold "github.com/babylonchain/finality-provider/finality-provider/proto"
 	bbntypes "github.com/babylonlabs-io/babylon/types"
+	bbnproto "github.com/babylonlabs-io/finality-provider/finality-provider/proto"
 	"github.com/boltdb/bolt"
+	bbnprotoold "github.com/evnix/boltdbweb/altproto"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	pm "google.golang.org/protobuf/proto"
@@ -162,6 +164,9 @@ type Result struct {
 }
 
 func tryParseBytesArrayKey(v []byte) string {
+	// if true {
+	// 	return fmt.Sprintf("%x", v)
+	// }
 	// try to parse as a BIP340 pubkey
 	pb, err := bbntypes.NewBIP340PubKey(v)
 	if err == nil {
@@ -172,10 +177,18 @@ func tryParseBytesArrayKey(v []byte) string {
 }
 
 func tryParseBytesArrayValue(v []byte) string {
+	// if true {
+	// 	return fmt.Sprintf("%x", v)
+	// }
 	// try to parse as a Babylon FinalityProvider
 	fp := &bbnprotoold.FinalityProvider{}
 	if err := pm.Unmarshal(v, fp); err == nil {
 		return fp.String()
+	}
+
+	fpNew := &bbnproto.FinalityProvider{}
+	if err := pm.Unmarshal(v, fpNew); err == nil {
+		return fpNew.String()
 	}
 
 	return string(v)
