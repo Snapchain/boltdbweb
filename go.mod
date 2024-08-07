@@ -6,9 +6,9 @@ require (
 	// github.com/babylonchain/finality-provider v0.1.1-0.20240709023223-3ed1c3e60677
 	github.com/babylonlabs-io/babylon v0.9.0
 	github.com/babylonlabs-io/finality-provider v0.4.0
-	github.com/boltdb/bolt v1.3.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/sirupsen/logrus v1.9.3
+	go.etcd.io/bbolt v1.3.10
 	google.golang.org/protobuf v1.34.1
 )
 
@@ -160,7 +160,6 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/zondax/hid v0.9.2 // indirect
 	github.com/zondax/ledger-go v0.14.3 // indirect
-	go.etcd.io/bbolt v1.3.8 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect
