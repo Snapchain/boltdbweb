@@ -70,7 +70,6 @@ func DeleteKey(c *gin.Context) {
 
 	Db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(c.PostForm("bucket")))
-		b = b
 		if err != nil {
 
 			c.String(200, "error no such bucket | n")
@@ -100,7 +99,6 @@ func Put(c *gin.Context) {
 
 	Db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(c.PostForm("bucket")))
-		b = b
 		if err != nil {
 
 			c.String(200, "error  creating bucket | n")
@@ -109,8 +107,14 @@ func Put(c *gin.Context) {
 
 		err = b.Put([]byte(c.PostForm("key")), []byte(c.PostForm("value")))
 
-		if err != nil {
+		// TODO:
+		// 1. merge two DB. add the reg-db record to base-db
+		// 2. find that record in base-db
+		// 3. get the value and use the reg-FP-proto-buf to decode it to object A
+		// 4. use obect A to create an object B that uses the base-FP-proto-buf
+		// 5. pm.marshal object B and put it in the base-db
 
+		if err != nil {
 			c.String(200, "error writing KV | n")
 			return fmt.Errorf("create kv: %s", err)
 		}
