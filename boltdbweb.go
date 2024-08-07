@@ -1,25 +1,22 @@
-//
 // boltdbweb is a webserver base GUI for interacting with BoltDB databases.
 //
 // For authorship see https://github.com/evnix/boltdbweb
 // MIT license is included in repository
-//
 package main
-
-//go:generate go-bindata-assetfs -o web_static.go web/...
 
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"time"
 
-	"github.com/evnix/boltdbweb/web"
+	boltbrowserweb "github.com/evnix/boltdbweb/web"
 	"github.com/gin-gonic/gin"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/boltdb/bolt"
+	log "github.com/sirupsen/logrus"
 )
 
 const version = "v0.0.0"
@@ -111,7 +108,7 @@ func main() {
 	r.POST("/deleteBucket", boltbrowserweb.DeleteBucket)
 	r.POST("/prefixScan", boltbrowserweb.PrefixScan)
 
-	r.StaticFS("/web", assetFS())
+	r.StaticFS("/web", http.Dir("./web"))
 
 	r.Run(":" + port)
 }
