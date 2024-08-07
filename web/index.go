@@ -114,6 +114,10 @@ func Put(c *gin.Context) {
 		// 4. use obect A to create an object B that uses the base-FP-proto-buf
 		// 5. pm.marshal object B and put it in the base-db
 
+		// Issues:
+		// 1. why cannot open DB. index out of range
+		// 2. why base-db shows chain_pk field in value
+
 		if err != nil {
 			c.String(200, "error writing KV | n")
 			return fmt.Errorf("create kv: %s", err)
