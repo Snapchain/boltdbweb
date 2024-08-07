@@ -76,7 +76,12 @@ func DeleteKey(c *gin.Context) {
 			return fmt.Errorf("bucket: %s", err)
 		}
 
-		err = b.Delete([]byte(c.PostForm("key")))
+		key, err := tryParseHex(c.PostForm("key"))
+		if err != nil {
+			key = []byte(c.PostForm("key"))
+		}
+
+		err = b.Delete(key)
 
 		if err != nil {
 
