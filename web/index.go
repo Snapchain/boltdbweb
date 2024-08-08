@@ -143,7 +143,8 @@ func Put(c *gin.Context) {
 
 			// use the old FinalityProvider to create a new FinalityProvider
 			fpNew := &bbnproto.FinalityProvider{
-				FpAddr:      "bbn1p4eyheg4quhxjrx7r3029hxylugl546zyfs7l9",
+				// TODO: we should use json data format in the "value" field
+				FpAddr:      c.PostForm("value"),
 				BtcPk:       fpOld.BtcPk,
 				Description: fpOld.Description,
 				Commission:  fpOld.Commission,
